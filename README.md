@@ -1,6 +1,6 @@
 # homebrew-canonry
 
-Homebrew tap for [canonry](https://github.com/AINYC/canonry), the open-source AEO monitoring tool.
+Homebrew tap for [canonry](https://github.com/AINYC/canonry), the agent first AEO operating platform
 
 ## Install
 
