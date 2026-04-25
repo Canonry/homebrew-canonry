@@ -1,5 +1,5 @@
 class Canonry < Formula
-  desc "Open-source AEO monitoring tool — track how AI answer engines cite your domain"
+  desc "Agent-first AEO operating platform"
   homepage "https://ainyc.ai"
   url "https://registry.npmjs.org/@ainyc/canonry/-/canonry-2.4.6.tgz"
   sha256 "159a3e07bc5733fc308498b29a492a1f53f34424579a700b76ae4097d8fb8b6f"
