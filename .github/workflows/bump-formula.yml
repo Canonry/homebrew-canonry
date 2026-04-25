@@ -1,0 +1,42 @@
+name: Bump formula
+
+on:
+  # Trigger from the main canonry repo's publish workflow via repository_dispatch
+  # (event_type: "canonry-published", client_payload: { version: "2.4.7" }).
+  repository_dispatch:
+    types: [canonry-published]
+  # Manual fallback — pass the version explicitly.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "canonry version to bump to (e.g. 2.4.7)"
+        required: true
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        run: |
+          VERSION="${{ github.event.client_payload.version || inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            echo "::error::No version provided"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Bump formula
+        uses: dawidd6/action-homebrew-bump-formula@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tap: ainyc/canonry
+          formula: canonry
+          tag: ${{ steps.ver.outputs.version }}
+          revision: ${{ steps.ver.outputs.version }}
+          force: false
