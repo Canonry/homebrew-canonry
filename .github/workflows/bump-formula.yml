@@ -32,15 +32,41 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Bump formula
-        uses: dawidd6/action-homebrew-bump-formula@v4
         env:
-          HOMEBREW_BUMP_NO_FORK: '1'
-          HOMEBREW_GIT_NAME: 'github-actions[bot]'
-          HOMEBREW_GIT_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tap: ainyc/canonry
-          formula: canonry
-          tag: ${{ steps.ver.outputs.version }}
-          revision: ${{ steps.ver.outputs.version }}
-          force: false
+          VERSION: ${{ steps.ver.outputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TARBALL_URL="https://registry.npmjs.org/@ainyc/canonry/-/canonry-${VERSION}.tgz"
+
+          # Wait for the tarball to be available on the npm CDN — the
+          # publish workflow can dispatch this before npm has propagated.
+          for i in 1 2 3 4 5 6; do
+            if curl -fsSL -o /tmp/canonry.tgz "$TARBALL_URL"; then
+              break
+            fi
+            echo "tarball not ready (attempt $i), sleeping 10s..."
+            sleep 10
+          done
+          test -s /tmp/canonry.tgz
+
+          SHA256=$(sha256sum /tmp/canonry.tgz | awk '{print $1}')
+          echo "version=$VERSION sha256=$SHA256"
+
+          # Update url + sha256 in place. Homebrew derives the version from
+          # the URL filename, so no separate version line is required.
+          # `|` as the sed delimiter avoids escaping `/` in the URL.
+          sed -i "s|^  url \".*\"|  url \"${TARBALL_URL}\"|" Formula/canonry.rb
+          sed -i "s|^  sha256 \".*\"|  sha256 \"${SHA256}\"|" Formula/canonry.rb
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          if git diff --quiet Formula/canonry.rb; then
+            echo "Formula already at $VERSION — nothing to do"
+            exit 0
+          fi
+
+          git add Formula/canonry.rb
+          git commit -m "canonry $VERSION"
+          git push origin HEAD:main
