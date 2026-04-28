@@ -33,6 +33,10 @@ jobs:
 
       - name: Bump formula
         uses: dawidd6/action-homebrew-bump-formula@v4
+        env:
+          HOMEBREW_BUMP_NO_FORK: '1'
+          HOMEBREW_GIT_NAME: 'github-actions[bot]'
+          HOMEBREW_GIT_EMAIL: '41898282+github-actions[bot]@users.noreply.github.com'
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tap: ainyc/canonry
