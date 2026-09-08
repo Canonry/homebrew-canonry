@@ -21,6 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
       - name: Resolve version
         id: ver
         run: |
@@ -35,20 +40,34 @@ jobs:
         env:
           VERSION: ${{ steps.ver.outputs.version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_FETCH_RETRIES: 0
+          NPM_CONFIG_FETCH_TIMEOUT: 10000
         run: |
           set -euo pipefail
-          TARBALL_URL="https://registry.npmjs.org/@canonry/canonry/-/canonry-${VERSION}.tgz"
+          PACKAGE="@canonry/canonry@$VERSION"
+          TARBALL_URL=""
 
-          # Wait for the tarball to be available on the npm CDN — the
-          # publish workflow can dispatch this before npm has propagated.
-          for i in 1 2 3 4 5 6; do
-            if curl -fsSL -o /tmp/canonry.tgz "$TARBALL_URL"; then
+          # npm can accept a scoped publish while its public metadata and
+          # tarball remain unavailable for several minutes. Resolve the
+          # canonical tarball URL from npm and wait up to ten minutes.
+          for attempt in {1..60}; do
+            candidate="$(npm view "$PACKAGE" dist.tarball 2>/dev/null || true)"
+            if [[ "$candidate" == https://registry.npmjs.org/* ]] && \
+              curl -fsSL --connect-timeout 5 --max-time 30 -o /tmp/canonry.tgz "$candidate"; then
+              TARBALL_URL="$candidate"
               break
             fi
-            echo "tarball not ready (attempt $i), sleeping 10s..."
-            sleep 10
+
+            echo "$PACKAGE is still processing (attempt $attempt/60)"
+            if [[ "$attempt" -lt 60 ]]; then
+              sleep 10
+            fi
           done
-          test -s /tmp/canonry.tgz
+
+          if [[ -z "$TARBALL_URL" || ! -s /tmp/canonry.tgz ]]; then
+            echo "::error::$PACKAGE was not publicly available after 10 minutes"
+            exit 1
+          fi
 
           SHA256=$(sha256sum /tmp/canonry.tgz | awk '{print $1}')
           echo "version=$VERSION sha256=$SHA256"
