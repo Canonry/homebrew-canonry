@@ -1,8 +1,8 @@
 class Canonry < Formula
   desc "Agent-first AEO operating platform"
   homepage "https://canonry.ai/platform"
-  url "https://registry.npmjs.org/@canonry/canonry/-/canonry-7.51.5.tgz"
-  sha256 "9e102f40a49ad6c21f2b815044cd4745a88056cb324d9b1b53a18d5931d0ac1d"
+  url "https://registry.npmjs.org/@canonry/canonry/-/canonry-7.51.6.tgz"
+  sha256 "c8e12b9742d89a46ce9c8924f2a68278b9191134169e94e4d7f07fe3286ac77d"
   license "FSL-1.1-ALv2"
 
   depends_on "node"
